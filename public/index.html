@@ -47,6 +47,13 @@ button.cta:active{transform:scale(.98)}
 .sheet-card b{font-size:16px;text-align:center}
 .sheet-card a{display:block;text-align:center;padding:15px;border-radius:12px;background:var(--navy);color:#fff;text-decoration:none;font-size:18px;font-weight:700}
 .sheet-card button{padding:13px;border:0;border-radius:12px;background:#eef1f5;color:var(--ink);font-size:16px;font-weight:600}
+.hero img{width:100%;height:auto;max-width:360px;aspect-ratio:5/4;object-fit:cover;object-position:50% 62%;border-radius:12px;display:block}
+.price b.np{font-size:20px}
+.thumbs{display:flex;gap:8px;padding:10px 16px 0}
+.thumbs button{width:62px;height:62px;padding:0;border:2px solid transparent;border-radius:10px;overflow:hidden;background:#fff;cursor:pointer}
+.thumbs button.on{border-color:var(--orange)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.total[hidden]{display:none}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 </style>
 </head>
@@ -64,27 +71,19 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 <main>
   <section class="card">
     <div class="hero">
-      <span class="badge">Offre du moment</span>
-      <svg viewBox="0 0 260 170" width="100%" style="max-width:300px" role="img" aria-label="Disque et plaquettes de frein">
-        <circle cx="120" cy="88" r="70" fill="#c9d3de"/>
-        <circle cx="120" cy="88" r="70" fill="none" stroke="#e8eef4" stroke-width="3"/>
-        <circle cx="120" cy="88" r="52" fill="none" stroke="#9aa8b8" stroke-width="2" stroke-dasharray="3 5"/>
-        <circle cx="120" cy="88" r="26" fill="#8d9bab"/>
-        <circle cx="120" cy="88" r="9" fill="#183653"/>
-        <g fill="#183653">
-          <circle cx="120" cy="66" r="4"/><circle cx="142" cy="88" r="4"/><circle cx="120" cy="110" r="4"/><circle cx="98" cy="88" r="4"/>
-        </g>
-        <path d="M168 40 h46 a10 10 0 0 1 10 10 v76 a10 10 0 0 1 -10 10 h-46 a40 40 0 0 0 0 -96z" fill="#ff7a1a"/>
-        <rect x="176" y="58" width="38" height="14" rx="3" fill="#0f2438" opacity=".85"/>
-        <rect x="176" y="100" width="38" height="14" rx="3" fill="#0f2438" opacity=".85"/>
-      </svg>
+      <span class="badge">Hyundai Creta 2019</span>
+      <img id="mainImg" src="img/creta-1.jpg" alt="Papillon des gaz Hyundai Creta 2019" width="675" height="900">
+    </div>
+    <div class="thumbs">
+      <button type="button" class="on" data-src="img/creta-1.jpg" aria-label="Photo 1"><img src="img/creta-1.jpg" alt=""></button>
+      <button type="button" data-src="img/creta-2.jpg" aria-label="Photo 2 (référence)"><img src="img/creta-2.jpg" alt=""></button>
     </div>
     <div class="info">
-      <h1>Plaquettes de frein avant — Renault Clio 4</h1>
-      <p class="compat">Compatible Clio 4 (2012 – 2019) · Jeu de 4 plaquettes</p>
-      <div class="price"><b>4 500 DA</b><small>Paiement à la livraison</small></div>
+      <h1>Papillon des gaz — Hyundai Creta 2019</h1>
+      <p class="compat">Boîtier papillon motorisé · Réf. 35100-2B220 / 0 280 750 630</p>
+      <div class="price"><b id="priceTxt" class="np">Prix sur demande</b><small>Paiement à la livraison</small></div>
       <ul class="pts">
-        <li>Qualité adaptable garantie</li>
+        <li>Photos réelles de la pièce</li>
         <li>Livraison dans toutes les wilayas</li>
         <li>Confirmation par téléphone avant l'envoi</li>
       </ul>
@@ -109,12 +108,12 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
       </div>
 
       <div class="fld"><label for="veh">Véhicule (marque, modèle, année)</label>
-        <input id="veh" value="Renault Clio 4 — " placeholder="Renault Clio 4 — 2016"><div class="err">Précisez l'année</div></div>
+        <input id="veh" value="Hyundai Creta — " placeholder="Hyundai Creta — 2019"><div class="err">Précisez l'année</div></div>
 
-      <div class="fld"><label for="qte">Quantité (jeux)</label>
+      <div class="fld"><label for="qte">Quantité</label>
         <select id="qte"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
 
-      <div class="total"><span>Total</span><span id="tot">4 500 DA</span></div>
+      <div class="total" id="totalRow" hidden><span>Total</span><span id="tot"></span></div>
       <button class="cta" type="submit">Confirmer la commande</button>
       <p class="note">Votre commande s'ouvre dans WhatsApp, appuyez sur « Envoyer ». Nous vous rappelons pour confirmer.</p>
     </form>
@@ -139,8 +138,8 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 <script>
 const CONFIG={
   phone:"213664121208",
-  product:"Plaquettes de frein avant",
-  price:4500,
+  product:"Papillon des gaz — réf. 35100-2B220",
+  price:null, // ← ضع السعر بالدينار (رقم) مثل 18000، أو اتركه null لإخفاء السعر
   pixelId:"" // ← ضع هنا معرّف Meta Pixel
 };
 
@@ -171,7 +170,13 @@ wil.addEventListener("change",()=>{
 
 const fmt=n=>n.toLocaleString("fr-FR").replace(/\u202f/g," ")+" DA";
 const qte=document.getElementById("qte"),tot=document.getElementById("tot");
-qte.onchange=()=>tot.textContent=fmt(CONFIG.price*qte.value);
+const tot2=document.getElementById("totalRow");
+if(CONFIG.price){const pt=document.getElementById("priceTxt");pt.textContent=fmt(CONFIG.price);pt.classList.remove("np");tot2.hidden=false;tot.textContent=fmt(CONFIG.price)}
+qte.onchange=()=>{if(CONFIG.price)tot.textContent=fmt(CONFIG.price*qte.value)};
+document.querySelectorAll(".thumbs button").forEach(b=>b.addEventListener("click",()=>{
+  document.getElementById("mainImg").src=b.dataset.src;
+  document.querySelectorAll(".thumbs button").forEach(x=>x.classList.toggle("on",x===b));
+}));
 
 const link=t=>"https://wa.me/"+CONFIG.phone+"?text="+encodeURIComponent(t);
 document.getElementById("wa").href=link("Bonjour, je suis intéressé par : "+CONFIG.product);
@@ -204,15 +209,15 @@ $("f").addEventListener("submit",e=>{
   const msg=
 `🛒 NOUVELLE COMMANDE
 Produit : ${CONFIG.product}
-Quantité : ${n} jeu(x)
-Total : ${fmt(CONFIG.price*n)} (paiement à la livraison)
+Quantité : ${n} pièce(s)
+${CONFIG.price?"Total : "+fmt(CONFIG.price*n)+" (paiement à la livraison)":"Paiement à la livraison (prix confirmé par téléphone)"}
 
 Nom : ${$("nom").value.trim()}
 Téléphone : ${tel}
 Wilaya : ${wil.options[wil.selectedIndex].text}
 Commune : ${$("com").value}
 Véhicule : ${$("veh").value.trim()}`+(utm?`\nSource : ${utm}`:"");
-  if(window.fbq)fbq("track","Lead",{value:CONFIG.price*n,currency:"DZD",content_name:CONFIG.product});
+  if(window.fbq)fbq("track","Lead",CONFIG.price?{value:CONFIG.price*n,currency:"DZD",content_name:CONFIG.product}:{content_name:CONFIG.product});
   location.href=link(msg);
 });
 </script>
