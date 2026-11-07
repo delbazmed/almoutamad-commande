@@ -47,6 +47,9 @@ for i, p in enumerate(products, 1):
         for im in imgs:
             if not isinstance(im, str) or not os.path.isfile(os.path.join(ROOT, im)):
                 err('%s: image introuvable: %s' % (tag, im))
+    for k in ('description', 'vehicle', 'years', 'badge', 'compat', 'ref', 'unit', 'vehiclePrefill', 'vehiclePlaceholder'):
+        if k in p and p[k] is not None and not isinstance(p[k], str):
+            err('%s: "%s" doit etre du texte' % (tag, k))
     for k in ('active', 'motorisation'):
         if k in p and not isinstance(p[k], bool):
             err('%s: "%s" doit etre true ou false' % (tag, k))

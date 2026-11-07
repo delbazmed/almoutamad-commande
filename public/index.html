@@ -10,9 +10,9 @@
 <meta property="og:site_name" content="Al Moutamad">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:url" content="https://almoutamad-commande.web.app/">
-<meta property="og:title" content="Papillon des gaz — Hyundai Creta 2019">
+<meta property="og:title" content="Al Moutamad — Pièces auto">
 <meta property="og:description" content="Commandez en ligne en une minute, paiement à la livraison. Al Moutamad — pièces détachées auto.">
-<meta property="og:image" content="https://almoutamad-commande.web.app/img/og-creta.jpg">
+<meta property="og:image" content="https://almoutamad-commande.web.app/img/og-default.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -24,6 +24,7 @@ header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-it
 .logo{width:40px;height:40px}
 .brand b{display:block;font-size:19px;letter-spacing:.3px}
 .brand span{font-size:12px;color:#9fb3c8}
+.desc{white-space:pre-line;font-size:14px;line-height:1.55;color:var(--ink);margin:8px 0 4px}
 main{max-width:520px;margin:0 auto;padding:14px}
 .card{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(15,36,56,.08);overflow:hidden;margin-bottom:14px}
 .hero{background:linear-gradient(160deg,var(--navy),var(--navy2));padding:18px;display:flex;justify-content:center;position:relative}
@@ -125,6 +126,7 @@ if(CONFIG.pixelId){
 /* ---------- UTM ---------- */
 const q=new URLSearchParams(location.search);
 const utm=["utm_source","utm_campaign","utm_content"].map(k=>q.get(k)?k.replace("utm_","")+"="+q.get(k):"").filter(Boolean).join(" | ");
+const catUrl=()=>{const u=new URLSearchParams(location.search);u.delete("p");const s=u.toString();return "/"+(s?"?"+s:"")};
 const withParams=(set,del)=>{const u=new URLSearchParams(location.search);(del||[]).forEach(k=>u.delete(k));Object.entries(set||{}).forEach(([k,v])=>u.set(k,v));const s=u.toString();return s?"?"+s:location.pathname};
 
 /* ---------- WhatsApp / appels ---------- */
@@ -175,7 +177,7 @@ function renderProduct(p,many){
   const imgs=p.images||[];
   const qlabel=QL[p.quality]||"";
   app.innerHTML=`
-  ${many?`<a class="back" href="${esc(withParams({},["p"]))}">← Toutes les pièces</a>`:""}
+  ${many?`<a class="back" href="${esc(catUrl())}">← Toutes les pièces</a>`:""}
   <section class="card">
     <div class="hero">
       ${p.badge?`<span class="badge">${esc(p.badge)}</span>`:""}
@@ -185,6 +187,7 @@ function renderProduct(p,many){
     <div class="info">
       <h1>${esc(p.title)}</h1>
       ${p.compat?`<p class="compat">${esc(p.compat)}</p>`:""}
+      ${p.description?`<p class="desc">${esc(p.description)}</p>`:""}
       <div class="price"><b id="priceTxt" class="${p.price?"":"np"}">${p.price?esc(fmt(p.price)):"Prix sur demande"}</b><small>Paiement à la livraison</small></div>
       <ul class="pts">
         ${qlabel?`<li>${esc(qlabel)}</li>`:""}
@@ -294,7 +297,7 @@ function renderProduct(p,many){
 fetch("products.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(d=>{
   const products=(d.products||[]).filter(p=>p.active!==false);
   if(!products.length){app.innerHTML='<p class="empty">Aucune pièce disponible pour le moment. Contactez-nous.</p>';return}
-  const id=q.get("p");
+  const id=q.get("p")||(location.pathname.match(/\/p\/([a-z0-9-]+)\/?$/)||[])[1];
   let prod=products.find(p=>p.id===id);
   if(!prod&&!id&&products.length===1)prod=products[0];
   prod?renderProduct(prod,products.length>1):renderCatalog(products);

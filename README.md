@@ -36,8 +36,25 @@
 ```
 (احذف التعليقات `//` من نسختك، فالـ JSON لا يقبلها.)
 
+## تطبيق الإدارة على الهاتف — `/admin/`
+الرابط: https://almoutamad-commande.web.app/admin/ (أضفه إلى الشاشة الرئيسية من قائمة Chrome ← Add to Home screen).
+- يضيف المنتجات ويعدّلها ويخفيها، ويرفع صورها من الهاتف (تُصغَّر تلقائياً إلى 900px).
+- يعدّل أرقام واتساب والاتصال، Pixel، رابط Sheets.
+- كل حفظ = commit واحد على `main` ثم نشر تلقائي (حوالي دقيقة)، وتظهر حالة النشر في التطبيق.
+- زر «مشاركة»: يفتح قائمة مشاركة الهاتف بالصورة ويُنسخ النص تلقائياً (فيه رابط الطلب الخاص بالمنتج `/p/ID/` مع وسوم UTM).
+
+### المفتاح (مرة واحدة)
+GitHub ← Settings ← Developer settings ← Personal access tokens ← Fine-grained tokens ← Generate new token:
+- Repository access: Only select repositories ← `almoutamad-commande` فقط.
+- Permissions: Contents = Read and write، Actions = Read-only.
+- Expiration: مدة محددة (مثلاً 90 يوماً).
+المفتاح يُحفظ في متصفح الهاتف فقط. من يملكه يعدّل الموقع؛ يمكن إلغاؤه في أي وقت من نفس الصفحة.
+
+### ما يُولَّد تلقائياً عند النشر
+`scripts/build_pages.py` ينشئ لكل منتج صفحة `/p/ID/` بمعاينة فيسبوك خاصة (عنوان + صورة 1200×630). هذه الملفات غير محفوظة في المستودع.
+
 ## روابط الإعلانات
-- منتج واحد: `https://almoutamad-commande.web.app/?p=ID&utm_source=facebook&utm_campaign=NOM`
+- منتج واحد (الأفضل لمعاينة فيسبوك): `https://almoutamad-commande.web.app/p/ID/?utm_source=facebook&utm_campaign=NOM`
 - كل القطع: `https://almoutamad-commande.web.app/?utm_source=facebook`
 - إن كان في الموقع منتج واحد فقط فالرابط بلا `p` يفتحه مباشرة.
 

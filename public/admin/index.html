@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0f2438">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>المعتمد — الإدارة</title>
+<style>
+:root{--navy:#0f2438;--navy2:#183653;--orange:#ff7a1a;--bg:#f4f6f9;--ink:#1b2430;--mut:#6b7684;--ok:#1fa35b;--err:#d93636;--line:#dde3ea}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;padding-bottom:40px}
+header{background:var(--navy);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;flex:1}
+header button{background:none;border:0;color:#fff;font-size:22px;padding:4px 8px;cursor:pointer}
+main{max-width:560px;margin:0 auto;padding:14px}
+.card{background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(15,36,56,.08);padding:14px;margin-bottom:12px}
+h2{font-size:17px;margin-bottom:10px}
+p.hint{font-size:13px;color:var(--mut);margin:4px 0 8px;line-height:1.55}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 5px}
+input,select,textarea{width:100%;font:inherit;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange)}
+textarea{min-height:90px;resize:vertical}
+.ltr{direction:ltr;text-align:left}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:var(--orange);color:#fff;text-align:center;text-decoration:none;margin-top:10px}
+.btn.sec{background:var(--navy);}
+.btn.ghost{background:#eef1f5;color:var(--ink)}
+.btn.danger{background:#fff;color:var(--err);border:1.5px solid var(--err)}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.btn.sm{padding:10px;font-size:14px;margin-top:8px}
+.prod{display:flex;gap:10px;align-items:center}
+.prod img{width:64px;height:64px;object-fit:cover;border-radius:10px;background:#e6ebf0;flex:none}
+.prod b{display:block;font-size:15px}
+.prod small{color:var(--mut)}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:12px;background:#e8f7ee;color:var(--ok);margin-inline-start:6px}
+.tag.off{background:#fdeaea;color:var(--err)}
+.banner{border-radius:12px;padding:12px;margin-bottom:12px;font-size:14px;font-weight:700}
+.banner.run{background:#fff4e8;color:#a85100}
+.banner.okb{background:#e8f7ee;color:var(--ok)}
+.banner.bad{background:#fdeaea;color:var(--err)}
+.imgs{display:flex;flex-wrap:wrap;gap:8px}
+.imgs .im{position:relative;width:88px}
+.imgs img{width:88px;height:88px;object-fit:cover;border-radius:10px;border:2px solid var(--line);display:block}
+.imgs .im.main img{border-color:var(--orange)}
+.imgs button{font:inherit;font-size:12px;border:0;border-radius:8px;padding:5px 0;margin-top:4px;width:100%;background:#eef1f5;cursor:pointer}
+.imgs button.x{background:#fdeaea;color:var(--err)}
+.add{width:88px;height:88px;border:2px dashed var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--orange);font-size:30px;cursor:pointer;background:#fff}
+.sel .im img{opacity:.55}
+.sel .im.main img{opacity:1}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;font-size:14px;z-index:20;max-width:90%;text-align:center}
+#busy{position:fixed;inset:0;background:rgba(15,36,56,.55);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;z-index:30;text-align:center;padding:20px}
+.err{color:var(--err);font-size:13px;margin-top:6px}
+ol{padding-inline-start:20px;font-size:14px;line-height:1.8}
+</style>
+</head>
+<body>
+<header><button id="back" hidden aria-label="رجوع">→</button><h1 id="ttl">المعتمد — الإدارة</h1><button id="gear" hidden aria-label="الإعدادات">⚙</button></header>
+<main id="app"></main>
+<div id="toast" hidden></div>
+<div id="busy" hidden></div>
+<script>
+(()=>{
+"use strict";
+const OWNER="delbazmed", REPO="almoutamad-commande", BR="main";
+const R=OWNER+"/"+REPO, SITE="https://almoutamad-commande.web.app";
+const $=id=>document.getElementById(id), app=$("app");
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const store={get(k){try{return localStorage.getItem(k)}catch(_){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}},del(k){try{localStorage.removeItem(k)}catch(_){}}};
+let token=store.get("am_token")||"";
+let data=null; // {products, config}
+let nav=[]; // pile de vues
+
+/* ---------- utilitaires UI ---------- */
+let tt;
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,3500)}
+function busy(m){const b=$("busy");if(m){b.textContent=m;b.hidden=false}else b.hidden=true}
+function show(title,html,opts){opts=opts||{};$("ttl").textContent=title;app.innerHTML=html;$("back").hidden=!opts.back;$("gear").hidden=!opts.gear;window.scrollTo(0,0)}
+$("back").onclick=()=>{nav.pop();(nav.pop()||home)();};
+$("gear").onclick=()=>settingsView();
+const fmtPrice=n=>String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ");
+
+/* ---------- GitHub API ---------- */
+async function gh(path,opt){
+  opt=opt||{};
+  const r=await fetch("https://api.github.com"+path,{method:opt.method||"GET",body:opt.body?JSON.stringify(opt.body):undefined,
+    headers:Object.assign({Accept:"application/vnd.github+json",Authorization:"Bearer "+token,"X-GitHub-Api-Version":"2022-11-28"},opt.body?{"Content-Type":"application/json"}:{})});
+  if(!r.ok){let m="";try{m=(await r.json()).message||""}catch(_){}const e=new Error(m||("HTTP "+r.status));e.status=r.status;throw e}
+  return r.status===204?null:r.json();
+}
+const b64utf8=b=>{const bin=atob(b.replace(/\s/g,""));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new TextDecoder().decode(u)};
+async function readFile(path,ref){const j=await gh(`/repos/${R}/contents/${path}?ref=${ref}`);return b64utf8(j.content)}
+function parseConfig(src){
+  const m=src.match(/const\s+CONFIG\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+  if(!m)throw new Error("تعذّرت قراءة config.js");
+  return JSON.parse(m[1]);
+}
+const CFG_HEAD="/* إعدادات المتجر — تُعدَّل من تطبيق الإدارة (/admin/) أو يدوياً. يجب أن تبقى القيم بصيغة JSON */\n";
+const cfgText=c=>CFG_HEAD+"const CONFIG = "+JSON.stringify(c,null,2)+";\n";
+const prodText=p=>JSON.stringify({products:p},null,2)+"\n";
+async function loadAll(){
+  const ref=await gh(`/repos/${R}/git/ref/heads/${BR}`);
+  const head=ref.object.sha;
+  const [p,c]=await Promise.all([readFile("public/products.json",head),readFile("public/config.js",head)]);
+  return {head,products:JSON.parse(p).products||[],config:parseConfig(c)};
+}
+// mutate({products,config}) -> {products?, config?, images?:[{path,b64}]}
+async function publish(mutate,message,attempt){
+  attempt=attempt||0;
+  const cur=await loadAll();
+  const out=mutate({products:JSON.parse(JSON.stringify(cur.products)),config:JSON.parse(JSON.stringify(cur.config))});
+  const commit=await gh(`/repos/${R}/git/commits/${cur.head}`);
+  const entries=[];
+  const blob=async(content,enc)=>(await gh(`/repos/${R}/git/blobs`,{method:"POST",body:{content,encoding:enc}})).sha;
+  for(const im of out.images||[])entries.push({path:"public/"+im.path,mode:"100644",type:"blob",sha:await blob(im.b64,"base64")});
+  if(out.products)entries.push({path:"public/products.json",mode:"100644",type:"blob",sha:await blob(prodText(out.products),"utf-8")});
+  if(out.config)entries.push({path:"public/config.js",mode:"100644",type:"blob",sha:await blob(cfgText(out.config),"utf-8")});
+  const tree=await gh(`/repos/${R}/git/trees`,{method:"POST",body:{base_tree:commit.tree.sha,tree:entries}});
+  const nc=await gh(`/repos/${R}/git/commits`,{method:"POST",body:{message,tree:tree.sha,parents:[cur.head]}});
+  try{await gh(`/repos/${R}/git/refs/heads/${BR}`,{method:"PATCH",body:{sha:nc.sha,force:false}})}
+  catch(e){if(e.status===422&&attempt<2)return publish(mutate,message,attempt+1);throw e}
+  data={products:out.products||cur.products,config:out.config||cur.config};
+  store.set("am_lastsha",nc.sha);
+  return nc.sha;
+}
+
+/* ---------- état du déploiement ---------- */
+let pollT;
+async function deployState(sha){
+  const q=sha?`head_sha=${sha}`:`branch=${BR}`;
+  const j=await gh(`/repos/${R}/actions/runs?${q}&per_page=1`);
+  const r=(j.workflow_runs||[])[0];
+  if(!r)return {s:"wait"};
+  if(r.status!=="completed")return {s:"run"};
+  return {s:r.conclusion==="success"?"ok":"bad",url:r.html_url};
+}
+function bannerHtml(st){
+  if(!st)return "";
+  if(st.s==="run"||st.s==="wait")return '<div class="banner run" id="bn">⏳ جارٍ نشر التعديلات على الموقع… (حوالي دقيقة)</div>';
+  if(st.s==="ok")return '<div class="banner okb" id="bn">✓ الموقع محدَّث ومنشور</div>';
+  return `<div class="banner bad" id="bn">✗ فشل النشر — لم يتغير الموقع. <a href="${esc(st.url||"#")}" target="_blank" rel="noopener">التفاصيل</a></div>`;
+}
+function watch(sha,onDone){
+  clearTimeout(pollT);
+  const tick=async()=>{
+    let st;try{st=await deployState(sha)}catch(_){st=null}
+    const bn=$("bn");
+    if(bn&&st){bn.outerHTML=bannerHtml(st)}
+    if(st&&(st.s==="ok"||st.s==="bad")){if(onDone)onDone(st);return}
+    pollT=setTimeout(tick,6000);
+  };
+  pollT=setTimeout(tick,4000);
+}
+
+/* ---------- vues ---------- */
+function tokenView(msg){
+  nav=[];
+  show("ربط التطبيق",`
+  <div class="card"><h2>الربط بالموقع (مرة واحدة)</h2>
+  <p class="hint">الصق هنا مفتاح GitHub الخاص بمشروع الموقع فقط. يُحفظ على هاتفك وحده، ولا يُرسل إلا إلى GitHub. من يملكه يستطيع تعديل الموقع، فلا تُعطه لأحد.</p>
+  <label for="tk">المفتاح (Token)</label><input id="tk" class="ltr" type="password" autocomplete="off" placeholder="github_pat_...">
+  ${msg?`<p class="err">${esc(msg)}</p>`:""}
+  <button class="btn" id="tkgo">ربط</button></div>`);
+  $("tkgo").onclick=async()=>{
+    const v=$("tk").value.trim();if(!v)return;
+    token=v;busy("جارٍ التحقق…");
+    try{
+      const r=await gh(`/repos/${R}`);
+      if(!r.permissions||!r.permissions.push)throw new Error("المفتاح لا يملك صلاحية الكتابة (Contents: Read and write)");
+      store.set("am_token",v);busy();home();
+    }catch(e){busy();token="";tokenView(e.status===401?"المفتاح غير صالح أو منتهي":e.status===404?"المفتاح لا يصل إلى مشروع الموقع (تأكد من اختيار المستودع almoutamad-commande)":e.message)}
+  };
+}
+function logout(){store.del("am_token");token="";data=null;tokenView()}
+
+async function home(){
+  nav=[home];clearTimeout(pollT);
+  show("المعتمد — المنتجات",'<p class="hint" style="text-align:center">جارٍ التحميل…</p>',{gear:true});
+  try{const a=await loadAll();data={products:a.products,config:a.config}}
+  catch(e){if(e.status===401)return tokenView("انتهت صلاحية المفتاح، أدخل مفتاحاً جديداً");
+    show("المعتمد — المنتجات",`<div class="card"><p class="err">تعذّر التحميل: ${esc(e.message)}</p><button class="btn" id="rt">إعادة المحاولة</button></div>`,{gear:true});$("rt").onclick=home;return}
+  let st=null;try{st=await deployState(store.get("am_lastsha")||"")}catch(_){}
+  const list=data.products.map((p,i)=>`
+  <div class="card"><div class="prod"><img src="/${esc((p.images||[])[0]||"")}" alt="" onerror="this.style.visibility='hidden'">
+    <div><b>${esc(p.title||p.name)}</b><small>${p.price?esc(fmtPrice(p.price))+" DA":"بدون سعر"}</small>
+    <span class="tag ${p.active===false?"off":""}">${p.active===false?"مخفي":"ظاهر"}</span></div></div>
+    <div class="row"><button class="btn sm" data-share="${i}">📣 مشاركة</button><button class="btn sm sec" data-edit="${i}">✏ تعديل</button></div>
+    <button class="btn sm ghost" data-toggle="${i}">${p.active===false?"إظهار في الموقع":"إخفاء من الموقع"}</button></div>`).join("");
+  show("المعتمد — المنتجات",`${bannerHtml(st)}<button class="btn" id="new">＋ منتج جديد</button><div style="height:12px"></div>${list||'<p class="hint" style="text-align:center">لا توجد منتجات.</p>'}
+  <a class="btn sm ghost" href="/" target="_blank" rel="noopener">فتح الموقع</a>`,{gear:true});
+  if(st&&(st.s==="run"||st.s==="wait"))watch(store.get("am_lastsha")||"");
+  $("new").onclick=()=>productView(null);
+  app.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>productView(data.products[+b.dataset.edit]));
+  app.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareView(data.products[+b.dataset.share]));
+  app.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{
+    const id=data.products[+b.dataset.toggle].id;busy("جارٍ الحفظ…");
+    try{await publish(s=>{const p=s.products.find(x=>x.id===id);if(!p)throw new Error("المنتج غير موجود");p.active=p.active===false;return {products:s.products}},"Admin: toggle "+id);busy();toast("تم، سيظهر التغيير في الموقع بعد النشر");home()}
+    catch(e){busy();toast("فشل: "+e.message)}
+  });
+}
+
+/* ----- صور ----- */
+function resizeImage(file,max){
+  return new Promise((ok,ko)=>{
+    const url=URL.createObjectURL(file);const im=new Image();
+    im.onload=()=>{
+      const r=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement("canvas");
+      c.width=Math.round(im.width*r);c.height=Math.round(im.height*r);
+      const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      const d=c.toDataURL("image/jpeg",0.85);ok({b64:d.split(",")[1],url:d});
+    };
+    im.onerror=()=>{URL.revokeObjectURL(url);ko(new Error("تعذّرت قراءة الصورة"))};
+    im.src=url;
+  });
+}
+function slug(s){return String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,40)}
+function deriveFields(f){
+  const veh=f.vehicle.trim(),yrs=f.years.trim();
+  const vy=[veh,yrs].filter(Boolean).join(" ");
+  return {title:f.name.trim()+(vy?" — "+vy:""),badge:vy,vehiclePrefill:veh?veh+" — ":"",vehiclePlaceholder:veh?veh+" — "+(yrs.split(/[\s,/-]+/)[0]||"2019"):""};
+}
+
+function productView(p){
+  nav.push(()=>productView(p));
+  const isNew=!p;p=p||{};
+  const f={name:p.name||"",vehicle:p.vehicle||"",years:p.years||"",ref:p.ref||"",compat:p.compat||"",description:p.description||"",
+    price:p.price||"",quality:p.quality||"",motorisation:p.motorisation!==false,unit:p.unit||"pièce(s)"};
+  let imgs=(p.images||[]).map(s=>({path:s,url:"/"+s}));
+  const draw=()=>{
+    $("imgs").innerHTML=imgs.map((im,i)=>`<div class="im ${i?"":"main"}"><img src="${esc(im.url)}" alt="">
+      ${i?`<button data-main="${i}">اجعلها الرئيسية</button>`:'<button disabled>الرئيسية ★</button>'}<button class="x" data-rm="${i}">حذف</button></div>`).join("")+
+      (imgs.length<6?'<label class="add" for="file">＋</label>':"");
+    $("imgs").querySelectorAll("[data-main]").forEach(b=>b.onclick=()=>{const i=+b.dataset.main;imgs.unshift(imgs.splice(i,1)[0]);draw()});
+    $("imgs").querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{imgs.splice(+b.dataset.rm,1);draw()});
+  };
+  show(isNew?"منتج جديد":"تعديل المنتج",`
+  <div class="card">
+    <label>الصور (حتى 6، الأولى هي الرئيسية)</label>
+    <div class="imgs" id="imgs"></div>
+    <input id="file" type="file" accept="image/*" multiple hidden>
+    <label for="name">اسم القطعة (بالفرنسية، يظهر للزبون)</label><input id="name" class="ltr" value="${esc(f.name)}" placeholder="Papillon des gaz">
+    <label for="vehicle">السيارة (الماركة والطراز)</label><input id="vehicle" class="ltr" value="${esc(f.vehicle)}" placeholder="Hyundai Creta">
+    <label for="years">السنوات</label><input id="years" class="ltr" value="${esc(f.years)}" placeholder="2019 أو 2017-2020">
+    <label for="ref">المرجع (Réf.)</label><input id="ref" class="ltr" value="${esc(f.ref)}" placeholder="35100-2B220">
+    <label for="compat">سطر التوافق (اختياري)</label><input id="compat" class="ltr" value="${esc(f.compat)}" placeholder="Boîtier papillon motorisé · Réf. 35100-2B220">
+    <label for="desc">نص تعريفي بالمنتج (اختياري)</label><textarea id="desc" class="ltr" placeholder="وصف يظهر في صفحة المنتج">${esc(f.description)}</textarea>
+    <label for="price">السعر (DA) — اتركه فارغاً لإظهار «Prix sur demande»</label><input id="price" type="number" inputmode="numeric" min="1" value="${esc(f.price)}">
+    <label for="quality">النوعية</label><select id="quality"><option value="">غير محددة (لا تُعرض)</option><option value="origine">أصلية</option><option value="adaptable">مقلدة / Adaptable</option></select>
+    <label for="mot">حقل نوع الوقود (Essence / Diesel) في النموذج</label><select id="mot"><option value="1">نعم، اسأل الزبون</option><option value="0">لا</option></select>
+    <label for="unit">الوحدة</label><input id="unit" class="ltr" value="${esc(f.unit)}">
+    <p class="err" id="er"></p>
+    <button class="btn" id="save">${isNew?"نشر المنتج":"حفظ ونشر"}</button>
+    ${isNew?"":'<button class="btn danger" id="del">حذف المنتج نهائياً</button>'}
+  </div>`,{back:true,gear:false});
+  $("quality").value=f.quality;$("mot").value=f.motorisation?"1":"0";
+  draw();
+  $("file").onchange=async e=>{
+    const files=[...e.target.files].slice(0,6-imgs.length);e.target.value="";
+    busy("جارٍ تجهيز الصور…");
+    try{for(const fl of files){const r=await resizeImage(fl,900);imgs.push({b64:r.b64,url:r.url})}}catch(x){toast(x.message)}
+    busy();draw();
+  };
+  $("save").onclick=async()=>{
+    const v={name:$("name").value,vehicle:$("vehicle").value,years:$("years").value};
+    const price=$("price").value.trim();const er=$("er");er.textContent="";
+    if(!v.name.trim())return er.textContent="اسم القطعة مطلوب";
+    if(!imgs.length)return er.textContent="أضف صورة واحدة على الأقل";
+    if(price&&!/^[1-9]\d{0,8}$/.test(price))return er.textContent="السعر رقم صحيح موجب فقط";
+    const stamp=Date.now().toString(36);
+    const newImgs=[];const paths=imgs.map((im,i)=>{if(im.path)return im.path;const pa=`img/${stamp}-${i+1}.jpg`;newImgs.push({path:pa,b64:im.b64});return pa});
+    const fields=Object.assign({name:v.name.trim(),vehicle:v.vehicle.trim(),years:v.years.trim(),ref:$("ref").value.trim(),compat:$("compat").value.trim(),
+      description:$("desc").value.trim(),price:price?+price:null,quality:$("quality").value||null,motorisation:$("mot").value==="1",unit:$("unit").value.trim()||"pièce(s)",images:paths},deriveFields(v));
+    busy("جارٍ النشر…");
+    try{
+      let id=p.id;
+      const sha=await publish(s=>{
+        if(isNew){
+          const base=slug(fields.name+" "+fields.vehicle+" "+fields.years)||("produit-"+stamp);
+          id=base;let n=2;while(s.products.some(x=>x.id===id))id=base+"-"+(n++);
+          s.products.unshift(Object.assign({id,active:true},fields));
+        }else{
+          const i=s.products.findIndex(x=>x.id===p.id);if(i<0)throw new Error("المنتج لم يعد موجوداً");
+          s.products[i]=Object.assign({},s.products[i],fields);
+          if(!fields.price)s.products[i].price=null;
+        }
+        return {products:s.products,images:newImgs};
+      },(isNew?"Admin: add ":"Admin: update ")+(p.id||fields.name));
+      busy();toast("تم الحفظ — جارٍ نشر الموقع");
+      nav=[];home();
+    }catch(e){busy();er.textContent="فشل النشر: "+e.message}
+  };
+  const del=$("del");if(del)del.onclick=async()=>{
+    if(!confirm("حذف هذا المنتج من الموقع نهائياً؟"))return;
+    busy("جارٍ الحذف…");
+    try{await publish(s=>({products:s.products.filter(x=>x.id!==p.id)}),"Admin: delete "+p.id);busy();toast("تم الحذف");nav=[];home()}
+    catch(e){busy();toast("فشل: "+e.message)}
+  };
+}
+
+/* ----- الإعدادات ----- */
+const normPhone=v=>{let d=String(v||"").replace(/\D/g,"");if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="213"+d.slice(1);return d};
+const local=d=>d?("0"+d.slice(3)):"";
+function settingsView(){
+  nav.push(settingsView);
+  const c=data?data.config:{phone:"",calls:[]};
+  const c1=(c.calls||[])[0],c2=(c.calls||[])[1];
+  const lc=a=>a?local(String(a[1]).replace("+","")):"";
+  show("الإعدادات",`
+  <div class="card"><h2>الأرقام</h2>
+    <label for="ph">رقم واتساب (تصله الطلبات)</label><input id="ph" class="ltr" inputmode="tel" value="${esc(local(c.phone))}" placeholder="0664121208">
+    <label for="c1">رقم الاتصال 1</label><input id="c1" class="ltr" inputmode="tel" value="${esc(lc(c1))}" placeholder="0664121208">
+    <label for="c2">رقم الاتصال 2 (اختياري)</label><input id="c2" class="ltr" inputmode="tel" value="${esc(lc(c2))}" placeholder="0782941828">
+    <h2 style="margin-top:18px">التتبع والسجل</h2>
+    <label for="px">معرّف Meta Pixel (أرقام فقط، اختياري)</label><input id="px" class="ltr" inputmode="numeric" value="${esc(c.pixelId||"")}">
+    <label for="sh">رابط سجل الطلبات Google Sheets (اختياري)</label><input id="sh" class="ltr" value="${esc(c.sheetUrl||"")}" placeholder="https://script.google.com/macros/s/.../exec">
+    <p class="err" id="er"></p>
+    <button class="btn" id="sv">حفظ ونشر</button>
+    <button class="btn danger" id="lo">فصل التطبيق (حذف المفتاح من الهاتف)</button>
+  </div>`,{back:true});
+  $("sv").onclick=async()=>{
+    const er=$("er");er.textContent="";
+    const phone=normPhone($("ph").value);
+    if(!/^213[567]\d{8}$/.test(phone))return er.textContent="رقم واتساب غير صحيح (مثال: 0664121208)";
+    const calls=[];
+    for(const id of ["c1","c2"]){
+      const raw=$(id).value.trim();if(!raw)continue;
+      const d=normPhone(raw);
+      if(!/^213[567]\d{8}$/.test(d))return er.textContent="رقم اتصال غير صحيح: "+raw;
+      const l=local(d);calls.push([l.replace(/^(\d{4})(\d{2})(\d{2})(\d{2})$/,"$1 $2 $3 $4"),"+"+d]);
+    }
+    const px=$("px").value.trim(),sh=$("sh").value.trim();
+    if(px&&!/^\d{10,20}$/.test(px))return er.textContent="Pixel: أرقام فقط (10 إلى 20 رقماً)";
+    if(sh&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(sh))return er.textContent="رابط Sheets يجب أن ينتهي بـ /exec";
+    busy("جارٍ النشر…");
+    try{await publish(s=>({config:Object.assign({},s.config,{phone,calls,pixelId:px,sheetUrl:sh})}),"Admin: settings");busy();toast("تم الحفظ — جارٍ النشر");nav=[];home()}
+    catch(e){busy();er.textContent="فشل: "+e.message}
+  };
+  $("lo").onclick=()=>{if(confirm("حذف المفتاح من هذا الهاتف؟"))logout()};
+}
+
+/* ----- المشاركة ----- */
+function caption(p,link){
+  const L=[p.title||p.name];
+  if(p.compat)L.push(p.compat);
+  L.push(p.price?`💰 ${fmtPrice(p.price)} DA — paiement à la livraison`:"💰 Prix sur demande — paiement à la livraison");
+  L.push("🚚 Livraison dans toutes les wilayas");
+  L.push("");L.push("👉 Commandez en ligne : "+link);
+  return L.join("\n");
+}
+async function copy(t){
+  try{await navigator.clipboard.writeText(t);return true}
+  catch(_){try{const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();const ok=document.execCommand("copy");a.remove();return ok}catch(__){return false}}
+}
+function shareView(p){
+  nav.push(()=>shareView(p));
+  const link=`${SITE}/p/${p.id}/?utm_source=facebook&utm_campaign=${encodeURIComponent(p.id)}&utm_content=post`;
+  let sel=0,blobCache={};
+  const imgs=(p.images||[]);
+  show("مشاركة على فيسبوك",`
+  <div id="bnw"></div>
+  <div class="card"><h2>1) اختر الصورة</h2><div class="imgs sel" id="si"></div>
+  <h2 style="margin-top:14px">2) النص (يمكنك تعديله)</h2>
+  <textarea id="cap" class="ltr" style="min-height:190px">${esc(caption(p,link))}</textarea>
+  <p class="hint">رابط الطلب الخاص بالمنتج داخل النص. فيسبوك لا يقبل أحياناً النص من زر المشاركة، لذلك يُنسخ النص تلقائياً — الصقه في المنشور.</p>
+  <button class="btn" id="go">📣 مشاركة (صورة + نسخ النص)</button>
+  <div class="row"><button class="btn sm sec" id="cp">نسخ النص</button><button class="btn sm sec" id="cl">نسخ الرابط</button></div>
+  <button class="btn sm ghost" id="sv">حفظ الصورة في الهاتف</button>
+  <a class="btn sm ghost" href="${esc(link)}" target="_blank" rel="noopener">اختبار رابط الطلب</a>
+  <p class="err" id="er"></p></div>
+  <div class="card"><h2>خطوات النشر</h2><ol><li>اضغط «مشاركة» واختر Facebook ثم صفحتك.</li><li>الصق النص (نُسخ تلقائياً) إن لم يظهر.</li><li>انشر، ثم افتح المنشور وجرّب زر الطلب.</li></ol>
+  <p class="hint">الإعلان المدفوع يُنشأ من Meta Business Suite بالمنشور نفسه (الرابط يحمل وسم المصدر).</p></div>`,{back:true});
+  const draw=()=>{$("si").innerHTML=imgs.map((s,i)=>`<div class="im ${i===sel?"main":""}" data-i="${i}"><img src="/${esc(s)}" alt=""></div>`).join("");
+    $("si").querySelectorAll(".im").forEach(d=>d.onclick=()=>{sel=+d.dataset.i;draw();prefetch()})};
+  const prefetch=async()=>{const s=imgs[sel];if(!s||blobCache[s])return;try{const r=await fetch("/"+s,{cache:"no-cache"});if(!r.ok)throw 0;blobCache[s]=await r.blob()}catch(_){}};
+  draw();prefetch();
+  deployState(store.get("am_lastsha")||"").then(st=>{if(st&&st.s!=="ok"){$("bnw").innerHTML=bannerHtml(st);watch(store.get("am_lastsha")||"",()=>{prefetch()})}}).catch(()=>{});
+  const cap=()=>$("cap").value;
+  $("cp").onclick=async()=>toast(await copy(cap())?"تم نسخ النص":"تعذّر النسخ، انسخه يدوياً");
+  $("cl").onclick=async()=>toast(await copy(link)?"تم نسخ الرابط":"تعذّر النسخ");
+  $("sv").onclick=()=>{
+    const b=blobCache[imgs[sel]];if(!b)return toast("الصورة غير متاحة بعد — انتظر اكتمال النشر");
+    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=p.id+".jpg";document.body.appendChild(a);a.click();a.remove();
+  };
+  $("go").onclick=async()=>{
+    $("er").textContent="";
+    copy(cap());
+    const b=blobCache[imgs[sel]];
+    if(!b)return $("er").textContent="الصورة غير متاحة بعد (قد يكون النشر لم يكتمل). النص نُسخ؛ انتظر قليلاً ثم أعد المحاولة.";
+    const file=new File([b],p.id+".jpg",{type:"image/jpeg"});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],text:cap()})}catch(e){if(e.name!=="AbortError")$("er").textContent="تعذّرت المشاركة: "+e.message}
+    }else{
+      $("er").textContent="هذا المتصفح لا يدعم مشاركة الصور. استخدم «حفظ الصورة» ثم «نسخ النص» وانشر يدوياً من فيسبوك.";
+    }
+  };
+}
+
+/* ---------- démarrage ---------- */
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+if(token)home();else tokenView();
+})();
+</script>
+</body>
+</html>

@@ -10,11 +10,16 @@
       "ref": "35100-2B220",
       "price": 25000,
       "quality": "origine",
-      "images": ["img/creta-1.jpg", "img/creta-2.jpg"],
+      "images": [
+        "img/creta-1.jpg",
+        "img/creta-2.jpg"
+      ],
       "vehiclePrefill": "Hyundai Creta — ",
       "vehiclePlaceholder": "Hyundai Creta — 2019",
       "motorisation": true,
-      "unit": "pièce(s)"
+      "unit": "pièce(s)",
+      "vehicle": "Hyundai Creta",
+      "years": "2019"
     }
   ]
 }
