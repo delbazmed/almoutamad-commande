@@ -41,6 +41,12 @@ button.cta:active{transform:scale(.98)}
 .float{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:#fff;box-shadow:0 -2px 12px rgba(0,0,0,.1)}
 .float a{display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border-radius:10px;text-decoration:none;font-weight:700;color:#fff;font-size:15px}
 .wa{background:#25d366}.tel{background:var(--navy)}
+.sheet{position:fixed;inset:0;background:rgba(15,36,56,.55);display:flex;align-items:flex-end;z-index:20}
+.sheet[hidden]{display:none}
+.sheet-card{background:#fff;width:100%;border-radius:18px 18px 0 0;padding:18px 16px 24px;display:grid;gap:10px}
+.sheet-card b{font-size:16px;text-align:center}
+.sheet-card a{display:block;text-align:center;padding:15px;border-radius:12px;background:var(--navy);color:#fff;text-decoration:none;font-size:18px;font-weight:700}
+.sheet-card button{padding:13px;border:0;border-radius:12px;background:#eef1f5;color:var(--ink);font-size:16px;font-weight:600}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 </style>
 </head>
@@ -118,7 +124,16 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 
 <div class="float">
   <a class="wa" id="wa" href="#">WhatsApp</a>
-  <a class="tel" href="tel:+213664121208">Appeler</a>
+  <a class="tel" id="callBtn" href="tel:+213664121208">Appeler</a>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card">
+    <b>Appeler Al Moutamad</b>
+    <a href="tel:+213664121208">📞 0664 12 12 08</a>
+    <a href="tel:+213782941828">📞 0782 94 18 28</a>
+    <button type="button" id="sheetClose">Fermer</button>
+  </div>
 </div>
 
 <script>
@@ -160,6 +175,11 @@ qte.onchange=()=>tot.textContent=fmt(CONFIG.price*qte.value);
 
 const link=t=>"https://wa.me/"+CONFIG.phone+"?text="+encodeURIComponent(t);
 document.getElementById("wa").href=link("Bonjour, je suis intéressé par : "+CONFIG.product);
+
+const sheet=document.getElementById("sheet");
+document.getElementById("callBtn").addEventListener("click",e=>{e.preventDefault();sheet.hidden=false});
+document.getElementById("sheetClose").onclick=()=>sheet.hidden=true;
+sheet.addEventListener("click",e=>{if(e.target===sheet)sheet.hidden=true});
 
 const $=id=>document.getElementById(id);
 function check(id,ok){$(id).closest(".fld").classList.toggle("bad",!ok);return ok}
