@@ -83,6 +83,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
       <p class="compat">Boîtier papillon motorisé · Réf. 35100-2B220 / 0 280 750 630</p>
       <div class="price"><b id="priceTxt" class="np">Prix sur demande</b><small>Paiement à la livraison</small></div>
       <ul class="pts">
+        <li id="qualLi" hidden></li>
         <li>Photos réelles de la pièce</li>
         <li>Livraison dans toutes les wilayas</li>
         <li>Confirmation par téléphone avant l'envoi</li>
@@ -109,6 +110,9 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 
       <div class="fld"><label for="veh">Véhicule (marque, modèle, année)</label>
         <input id="veh" value="Hyundai Creta — " placeholder="Hyundai Creta — 2019"><div class="err">Précisez l'année</div></div>
+
+      <div class="fld"><label for="mot">Motorisation</label>
+        <select id="mot"><option value="">Choisir</option><option value="Essence">Essence</option><option value="Diesel">Diesel</option></select><div class="err">Requis</div></div>
 
       <div class="fld"><label for="qte">Quantité</label>
         <select id="qte"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
@@ -139,6 +143,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 const CONFIG={
   phone:"213664121208",
   product:"Papillon des gaz — réf. 35100-2B220",
+  quality:null, // ← "origine" أو "adaptable" (أو null لإخفائها)
   price:null, // ← ضع السعر بالدينار (رقم) مثل 18000، أو اتركه null لإخفاء السعر
   pixelId:"" // ← ضع هنا معرّف Meta Pixel
 };
@@ -170,6 +175,8 @@ wil.addEventListener("change",()=>{
 
 const fmt=n=>n.toLocaleString("fr-FR").replace(/\u202f/g," ")+" DA";
 const qte=document.getElementById("qte"),tot=document.getElementById("tot");
+const Q={origine:"Pièce d'origine",adaptable:"Pièce adaptable"};
+if(Q[CONFIG.quality]){const ql=document.getElementById("qualLi");ql.textContent=Q[CONFIG.quality];ql.hidden=false}
 const tot2=document.getElementById("totalRow");
 if(CONFIG.price){const pt=document.getElementById("priceTxt");pt.textContent=fmt(CONFIG.price);pt.classList.remove("np");tot2.hidden=false;tot.textContent=fmt(CONFIG.price)}
 qte.onchange=()=>{if(CONFIG.price)tot.textContent=fmt(CONFIG.price*qte.value)};
@@ -202,13 +209,14 @@ $("f").addEventListener("submit",e=>{
     check("tel",/^0[567]\d{8}$/.test(tel)),
     check("wil",!!wil.value),
     check("com",!!$("com").value),
-    check("veh",/\d{4}/.test($("veh").value))
+    check("veh",/\d{4}/.test($("veh").value)),
+    check("mot",!!$("mot").value)
   ];
   if(v.includes(false)){document.querySelector(".bad")?.scrollIntoView({behavior:"smooth",block:"center"});return}
   const n=+qte.value;
   const msg=
 `🛒 NOUVELLE COMMANDE
-Produit : ${CONFIG.product}
+Produit : ${CONFIG.product}${Q[CONFIG.quality]?"\nQualité : "+Q[CONFIG.quality]:""}
 Quantité : ${n} pièce(s)
 ${CONFIG.price?"Total : "+fmt(CONFIG.price*n)+" (paiement à la livraison)":"Paiement à la livraison (prix confirmé par téléphone)"}
 
@@ -216,7 +224,8 @@ Nom : ${$("nom").value.trim()}
 Téléphone : ${tel}
 Wilaya : ${wil.options[wil.selectedIndex].text}
 Commune : ${$("com").value}
-Véhicule : ${$("veh").value.trim()}`+(utm?`\nSource : ${utm}`:"");
+Véhicule : ${$("veh").value.trim()}
+Motorisation : ${$("mot").value}`+(utm?`\nSource : ${utm}`:"");
   if(window.fbq)fbq("track","Lead",CONFIG.price?{value:CONFIG.price*n,currency:"DZD",content_name:CONFIG.product}:{content_name:CONFIG.product});
   location.href=link(msg);
 });
