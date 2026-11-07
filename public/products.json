@@ -1,0 +1,20 @@
+{
+  "products": [
+    {
+      "id": "creta-papillon",
+      "active": true,
+      "name": "Papillon des gaz",
+      "title": "Papillon des gaz — Hyundai Creta 2019",
+      "badge": "Hyundai Creta 2019",
+      "compat": "Boîtier papillon motorisé · Réf. 35100-2B220 / 0 280 750 630",
+      "ref": "35100-2B220",
+      "price": 25000,
+      "quality": "origine",
+      "images": ["img/creta-1.jpg", "img/creta-2.jpg"],
+      "vehiclePrefill": "Hyundai Creta — ",
+      "vehiclePlaceholder": "Hyundai Creta — 2019",
+      "motorisation": true,
+      "unit": "pièce(s)"
+    }
+  ]
+}
