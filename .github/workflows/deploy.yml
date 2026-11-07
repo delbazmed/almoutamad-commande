@@ -15,7 +15,14 @@ jobs:
         env:
           SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          python3 -c "import json,os; d=json.loads(os.environ['SA'],strict=False); json.dump(d,open('/tmp/sa.json','w'))"
+          python3 -c "
+import json,os,sys
+d=json.loads(os.environ['SA'],strict=False)
+pid=d.get('project_id')
+print('Key project_id:',pid)
+if pid!='almoutamad-commande':
+    sys.exit('ERREUR: la cle appartient au projet '+str(pid)+' et non a almoutamad-commande')
+json.dump(d,open('/tmp/sa.json','w'))"
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json" >> "$GITHUB_ENV"
       - name: Deploy to Firebase Hosting
         run: npx -y firebase-tools@latest deploy --only hosting --project almoutamad-commande --non-interactive
