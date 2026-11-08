@@ -6,6 +6,6 @@ const CONFIG = {
     ["0782 94 18 28", "+213782941828"]
   ],
   "sheetUrl": "",
-  "firebaseKey": "",
+  "firebaseKey": "AIzaSyCHB9qJeHnx4F-ggin_gKJIOZ1K_V9iX0k",
   "pixelId": ""
 };
