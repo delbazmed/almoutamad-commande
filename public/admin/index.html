@@ -188,7 +188,7 @@ async function home(){
   let st=null;try{st=await deployState(store.get("am_lastsha")||"")}catch(_){}
   const list=data.products.map((p,i)=>`
   <div class="card"><div class="prod"><img src="/${esc((p.images||[])[0]||"")}" alt="" onerror="this.style.visibility='hidden'">
-    <div><b>${esc(p.title||p.name)}</b><small>${p.price?esc(fmtPrice(p.price))+" DA":"بدون سعر"}</small>
+    <div><b>${esc(p.title||p.name)}</b><small>${p.price?`<span dir="ltr">${esc(fmtPrice(p.price))} DA</span>`:"بدون سعر"}</small>
     <span class="tag ${p.active===false?"off":""}">${p.active===false?"مخفي":"ظاهر"}</span></div></div>
     <div class="row"><button class="btn sm" data-share="${i}">📣 مشاركة</button><button class="btn sm sec" data-edit="${i}">✏ تعديل</button></div>
     <button class="btn sm ghost" data-toggle="${i}">${p.active===false?"إظهار في الموقع":"إخفاء من الموقع"}</button></div>`).join("");
@@ -293,7 +293,7 @@ function productView(p){
         return {products:s.products,images:newImgs};
       },(isNew?"Admin: add ":"Admin: update ")+(p.id||fields.name));
       busy();toast("تم الحفظ — جارٍ نشر الموقع");
-      nav=[];home();
+      nav=[];publishedView(id,sha,isNew);
     }catch(e){busy();er.textContent="فشل النشر: "+e.message}
   };
   const del=$("del");if(del)del.onclick=async()=>{
@@ -302,6 +302,32 @@ function productView(p){
     try{await publish(s=>({products:s.products.filter(x=>x.id!==p.id)}),"Admin: delete "+p.id);busy();toast("تم الحذف");nav=[];home()}
     catch(e){busy();toast("فشل: "+e.message)}
   };
+}
+
+/* ----- نتيجة النشر ----- */
+function publishedView(id,sha,isNew){
+  nav=[home];clearTimeout(pollT);
+  const prod=()=>data.products.find(x=>x.id===id);
+  show("النشر",`<div class="card" id="ps"></div>`,{back:true});
+  const t0=Date.now();
+  const paint=(cls,title,sub,done)=>{
+    $("ps").innerHTML=`<div class="banner ${cls}" style="font-size:17px">${title}</div><p class="hint">${sub}</p>`+
+      (done?`<button class="btn" id="psh">📣 شارك الآن على فيسبوك</button><a class="btn sec" href="/p/${esc(id)}/" target="_blank" rel="noopener">فتح صفحة المنتج</a><button class="btn ghost" id="phm">كل المنتجات</button>`:
+       `<button class="btn ghost" id="phm">كل المنتجات</button>`);
+    $("phm").onclick=home;if(done)$("psh").onclick=()=>shareView(prod());
+  };
+  paint("run","⏳ جارٍ النشر… لا تشارك بعد","يستغرق حوالي دقيقة. ستظهر هنا رسالة خضراء عند الجاهزية.",false);
+  const tick=async()=>{
+    let st=null;try{st=await deployState(sha)}catch(_){}
+    if(st&&st.s==="bad")return paint("bad","✗ فشل النشر — لم يتغير الموقع","راجع التفاصيل: "+(st.url||""),false);
+    if(st&&st.s==="ok"){
+      let live=false;try{const r=await fetch(`/p/${encodeURIComponent(id)}/?_=${Date.now()}`,{cache:"no-store"});live=r.ok}catch(_){}
+      if(live)return paint("okb","✓ تم النشر — الصفحة جاهزة للمشاركة","الرابط يعمل الآن.",true);
+    }
+    if(Date.now()-t0>420000)return paint("bad","تأخر النشر أكثر من المعتاد","افتح قائمة المنتجات وتحقق من الحالة بعد قليل.",false);
+    pollT=setTimeout(tick,4000);
+  };
+  pollT=setTimeout(tick,4000);
 }
 
 /* ----- الإعدادات ----- */
@@ -346,12 +372,19 @@ function settingsView(){
 }
 
 /* ----- المشاركة ----- */
-function caption(p,link){
+const TXT={
+  fr:{price:n=>`💰 ${n} DA — paiement à la livraison`,np:"💰 Prix sur demande — paiement à la livraison",ship:"🚚 Livraison dans toutes les wilayas",cta:"👉 Commandez en ligne : "},
+  ar:{price:n=>`💰 ${n} دج — الدفع عند الاستلام`,np:"💰 السعر عند الطلب — الدفع عند الاستلام",ship:"🚚 التوصيل إلى جميع الولايات",cta:"👉 اطلب الآن من هنا: "},
+  en:{price:n=>`💰 ${n} DZD — cash on delivery`,np:"💰 Price on request — cash on delivery",ship:"🚚 Delivery to all wilayas",cta:"👉 Order online: "}
+};
+function caption(p,link,lang){
+  const T=TXT[lang]||TXT.fr;
   const L=[p.title||p.name];
   if(p.compat)L.push(p.compat);
-  L.push(p.price?`💰 ${fmtPrice(p.price)} DA — paiement à la livraison`:"💰 Prix sur demande — paiement à la livraison");
-  L.push("🚚 Livraison dans toutes les wilayas");
-  L.push("");L.push("👉 Commandez en ligne : "+link);
+  if(p.description)L.push(p.description.slice(0,250));
+  L.push(p.price?T.price(fmtPrice(p.price)):T.np);
+  L.push(T.ship);
+  L.push("");L.push(T.cta+link);
   return L.join("\n");
 }
 async function copy(t){
@@ -362,12 +395,14 @@ function shareView(p){
   nav.push(()=>shareView(p));
   const link=`${SITE}/p/${p.id}/?utm_source=facebook&utm_campaign=${encodeURIComponent(p.id)}&utm_content=post`;
   let sel=0,blobCache={};
+  const lang0=TXT[store.get("am_lang")]?store.get("am_lang"):"fr";
   const imgs=(p.images||[]);
   show("مشاركة على فيسبوك",`
   <div id="bnw"></div>
   <div class="card"><h2>1) اختر الصورة</h2><div class="imgs sel" id="si"></div>
   <h2 style="margin-top:14px">2) النص (يمكنك تعديله)</h2>
-  <textarea id="cap" class="ltr" style="min-height:190px">${esc(caption(p,link))}</textarea>
+  <label for="lang">لغة النص</label><select id="lang"><option value="fr">Français</option><option value="ar">العربية</option><option value="en">English</option></select>
+  <textarea id="cap" dir="auto" style="min-height:190px;margin-top:8px;text-align:start">${esc(caption(p,link,lang0))}</textarea>
   <p class="hint">رابط الطلب الخاص بالمنتج داخل النص. فيسبوك لا يقبل أحياناً النص من زر المشاركة، لذلك يُنسخ النص تلقائياً — الصقه في المنشور.</p>
   <button class="btn" id="go">📣 مشاركة (صورة + نسخ النص)</button>
   <div class="row"><button class="btn sm sec" id="cp">نسخ النص</button><button class="btn sm sec" id="cl">نسخ الرابط</button></div>
@@ -381,6 +416,8 @@ function shareView(p){
   const prefetch=async()=>{const s=imgs[sel];if(!s||blobCache[s])return;try{const r=await fetch("/"+s,{cache:"no-cache"});if(!r.ok)throw 0;blobCache[s]=await r.blob()}catch(_){}};
   draw();prefetch();
   deployState(store.get("am_lastsha")||"").then(st=>{if(st&&st.s!=="ok"){$("bnw").innerHTML=bannerHtml(st);watch(store.get("am_lastsha")||"",()=>{prefetch()})}}).catch(()=>{});
+  $("lang").value=lang0;
+  $("lang").onchange=e=>{store.set("am_lang",e.target.value);$("cap").value=caption(p,link,e.target.value)};
   const cap=()=>$("cap").value;
   $("cp").onclick=async()=>toast(await copy(cap())?"تم نسخ النص":"تعذّر النسخ، انسخه يدوياً");
   $("cl").onclick=async()=>toast(await copy(link)?"تم نسخ الرابط":"تعذّر النسخ");
