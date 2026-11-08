@@ -8,7 +8,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>المعتمد — الإدارة</title>
+<meta name="apple-mobile-web-app-title" content="Ali_Pub">
+<title>Ali_Pub</title>
 <style>
 :root{--navy:#0f2438;--navy2:#183653;--orange:#ff7a1a;--bg:#f4f6f9;--ink:#1b2430;--mut:#6b7684;--ok:#1fa35b;--err:#d93636;--line:#dde3ea}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -60,7 +61,7 @@ ol{padding-inline-start:20px;font-size:14px;line-height:1.8}
 </style>
 </head>
 <body>
-<header><button id="back" hidden aria-label="رجوع">→</button><h1 id="ttl">المعتمد — الإدارة</h1><button id="gear" hidden aria-label="الإعدادات">⚙</button></header>
+<header><button id="back" hidden aria-label="رجوع">→</button><h1 id="ttl">Ali_Pub</h1><button id="gear" hidden aria-label="الإعدادات">⚙</button></header>
 <main id="app"></main>
 <div id="toast" hidden></div>
 <div id="busy" hidden></div>
@@ -180,10 +181,10 @@ function logout(){store.del("am_token");token="";data=null;tokenView()}
 
 async function home(){
   nav=[home];clearTimeout(pollT);
-  show("المعتمد — المنتجات",'<p class="hint" style="text-align:center">جارٍ التحميل…</p>',{gear:true});
+  show("Ali_Pub — المنتجات",'<p class="hint" style="text-align:center">جارٍ التحميل…</p>',{gear:true});
   try{const a=await loadAll();data={products:a.products,config:a.config}}
   catch(e){if(e.status===401)return tokenView("انتهت صلاحية المفتاح، أدخل مفتاحاً جديداً");
-    show("المعتمد — المنتجات",`<div class="card"><p class="err">تعذّر التحميل: ${esc(e.message)}</p><button class="btn" id="rt">إعادة المحاولة</button></div>`,{gear:true});$("rt").onclick=home;return}
+    show("Ali_Pub — المنتجات",`<div class="card"><p class="err">تعذّر التحميل: ${esc(e.message)}</p><button class="btn" id="rt">إعادة المحاولة</button></div>`,{gear:true});$("rt").onclick=home;return}
   let st=null;try{st=await deployState(store.get("am_lastsha")||"")}catch(_){}
   const list=data.products.map((p,i)=>`
   <div class="card"><div class="prod"><img src="/${esc((p.images||[])[0]||"")}" alt="" onerror="this.style.visibility='hidden'">
@@ -191,7 +192,7 @@ async function home(){
     <span class="tag ${p.active===false?"off":""}">${p.active===false?"مخفي":"ظاهر"}</span></div></div>
     <div class="row"><button class="btn sm" data-share="${i}">📣 مشاركة</button><button class="btn sm sec" data-edit="${i}">✏ تعديل</button></div>
     <button class="btn sm ghost" data-toggle="${i}">${p.active===false?"إظهار في الموقع":"إخفاء من الموقع"}</button></div>`).join("");
-  show("المعتمد — المنتجات",`${bannerHtml(st)}<button class="btn" id="new">＋ منتج جديد</button><div style="height:12px"></div>${list||'<p class="hint" style="text-align:center">لا توجد منتجات.</p>'}
+  show("Ali_Pub — المنتجات",`${bannerHtml(st)}<button class="btn" id="new">＋ منتج جديد</button><div style="height:12px"></div>${list||'<p class="hint" style="text-align:center">لا توجد منتجات.</p>'}
   <a class="btn sm ghost" href="/" target="_blank" rel="noopener">فتح الموقع</a>`,{gear:true});
   if(st&&(st.s==="run"||st.s==="wait"))watch(store.get("am_lastsha")||"");
   $("new").onclick=()=>productView(null);
