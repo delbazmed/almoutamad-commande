@@ -19,7 +19,8 @@
       "motorisation": true,
       "unit": "pièce(s)",
       "vehicle": "Hyundai Creta",
-      "years": "2019"
+      "years": "2019",
+      "description": ""
     }
   ]
 }
