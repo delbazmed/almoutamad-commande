@@ -77,6 +77,9 @@ else:
         su = cfg.get('sheetUrl', '')
         if su and not re.fullmatch(r'https://script\.google\.com/macros/s/[\w-]+/exec', su):
             err('config.js: "sheetUrl" doit etre l\'URL de l\'application web Google (se termine par /exec)')
+        fk = cfg.get('firebaseKey', '')
+        if fk and not re.fullmatch(r'AIza[\w-]{30,45}', fk):
+            err('config.js: "firebaseKey" invalide (cle API Web Firebase, commence par AIza)')
         px = cfg.get('pixelId', '')
         if px and not re.fullmatch(r'\d{10,20}', px):
             err('config.js: "pixelId" doit contenir uniquement des chiffres')

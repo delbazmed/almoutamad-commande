@@ -192,10 +192,11 @@ async function home(){
     <span class="tag ${p.active===false?"off":""}">${p.active===false?"مخفي":"ظاهر"}</span></div></div>
     <div class="row"><button class="btn sm" data-share="${i}">📣 مشاركة</button><button class="btn sm sec" data-edit="${i}">✏ تعديل</button></div>
     <button class="btn sm ghost" data-toggle="${i}">${p.active===false?"إظهار في الموقع":"إخفاء من الموقع"}</button></div>`).join("");
-  show("Ali_Pub — المنتجات",`${bannerHtml(st)}<button class="btn" id="new">＋ منتج جديد</button><div style="height:12px"></div>${list||'<p class="hint" style="text-align:center">لا توجد منتجات.</p>'}
+  show("Ali_Pub — المنتجات",`${bannerHtml(st)}<button class="btn" id="new">＋ منتج جديد</button><button class="btn sec" id="ords">📦 الطلبات</button><div style="height:12px"></div>${list||'<p class="hint" style="text-align:center">لا توجد منتجات.</p>'}
   <a class="btn sm ghost" href="/" target="_blank" rel="noopener">فتح الموقع</a>`,{gear:true});
   if(st&&(st.s==="run"||st.s==="wait"))watch(store.get("am_lastsha")||"");
   $("new").onclick=()=>productView(null);
+  $("ords").onclick=()=>ordersView();
   app.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>productView(data.products[+b.dataset.edit]));
   app.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>shareView(data.products[+b.dataset.share]));
   app.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=async()=>{
@@ -304,6 +305,92 @@ function productView(p){
   };
 }
 
+/* ----- الطلبات (Firestore) ----- */
+const FSB="https://firestore.googleapis.com/v1/projects/almoutamad-commande/databases/(default)/documents";
+const STAT=[["Nouveau","جديد"],["Confirmé","مؤكد"],["Livré","مسلَّم"],["Annulé","ملغى"],["Injoignable","لم يرد"]];
+const statLabel=v=>(STAT.find(x=>x[0]===v)||[0,v])[1];
+let fb={idToken:"",exp:0};
+const fbKey=()=>(data&&data.config&&data.config.firebaseKey)||"";
+async function fbPost(url,body,form){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":form?"application/x-www-form-urlencoded":"application/json"},body:form?body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error((j.error&&j.error.message)||("HTTP "+r.status));throw e}
+  return j;
+}
+function setFb(idToken,rt,exp){fb={idToken,exp:Date.now()+(+exp-60)*1000};if(rt)store.set("am_fb_rt",rt)}
+async function fbToken(){
+  if(fb.idToken&&Date.now()<fb.exp)return fb.idToken;
+  const rt=store.get("am_fb_rt");
+  if(rt&&fbKey()){
+    try{const j=await fbPost("https://securetoken.googleapis.com/v1/token?key="+encodeURIComponent(fbKey()),"grant_type=refresh_token&refresh_token="+encodeURIComponent(rt),true);
+      setFb(j.id_token,j.refresh_token,j.expires_in);return fb.idToken}catch(_){store.del("am_fb_rt")}
+  }
+  return "";
+}
+async function fs(method,path,body){
+  const t=await fbToken();if(!t){const e=new Error("login");e.login=true;throw e}
+  const r=await fetch(FSB+path,{method,headers:Object.assign({Authorization:"Bearer "+t},body?{"Content-Type":"application/json"}:{}),body:body?JSON.stringify(body):undefined});
+  const j=r.status===204?{}:await r.json().catch(()=>({}));
+  if(!r.ok){const e=new Error((j.error&&j.error.message)||("HTTP "+r.status));e.status=r.status;throw e}
+  return j;
+}
+const fv=f=>f==null?"":(f.stringValue!==undefined?f.stringValue:f.integerValue!==undefined?+f.integerValue:"");
+async function fetchOrders(){
+  let out=[],tok="";
+  do{const j=await fs("GET","/orders?pageSize=300"+(tok?"&pageToken="+encodeURIComponent(tok):""));
+    for(const d of j.documents||[]){const o={_id:d.name.split("/").pop(),_t:d.createTime};for(const k in d.fields)o[k]=fv(d.fields[k]);out.push(o)}
+    tok=j.nextPageToken||""}while(tok&&out.length<1000);
+  return out.sort((a,b)=>b._t<a._t?-1:1);
+}
+function loginView(msg){
+  show("تسجيل دخول الطلبات",`<div class="card"><h2>دخول سجل الطلبات</h2>
+  <p class="hint">استعمل البريد وكلمة السر اللذين أنشأتهما في Firebase Authentication. تُحفظ الجلسة على هاتفك.</p>
+  <label for="em">البريد</label><input id="em" class="ltr" type="email" autocomplete="username" value="${esc(store.get("am_fb_email")||"")}">
+  <label for="pw">كلمة السر</label><input id="pw" class="ltr" type="password" autocomplete="current-password">
+  ${msg?`<p class="err">${esc(msg)}</p>`:""}<button class="btn" id="lg">دخول</button></div>`,{back:true});
+  $("lg").onclick=async()=>{
+    const email=$("em").value.trim(),pw=$("pw").value;if(!email||!pw)return;
+    store.set("am_fb_email",email);busy("جارٍ الدخول…");
+    try{const j=await fbPost("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key="+encodeURIComponent(fbKey()),{email,password:pw,returnSecureToken:true});
+      store.set("am_fb_email",email);setFb(j.idToken,j.refreshToken,j.expiresIn);busy();nav.pop();ordersView()}
+    catch(e){busy();const m=e.message||"";loginView(/INVALID_LOGIN|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(m)?"البريد أو كلمة السر غير صحيحة":/API_KEY/.test(m)?"مفتاح Firebase غير صالح":/OPERATION_NOT_ALLOWED/.test(m)?"فعّل Email/Password في Authentication":m)}
+  };
+}
+async function ordersView(filter){
+  if(typeof filter!=="string")filter="all";
+  nav.push(()=>ordersView(filter));
+  if(!fbKey()){show("الطلبات",`<div class="card"><h2>سجل الطلبات غير مفعّل</h2><p class="hint">أدخل مفتاح Firebase في الإعدادات أولاً.</p><button class="btn" id="gs">فتح الإعدادات</button></div>`,{back:true});$("gs").onclick=settingsView;return}
+  show("الطلبات",'<p class="hint" style="text-align:center">جارٍ التحميل…</p>',{back:true});
+  let list;
+  try{list=await fetchOrders()}
+  catch(e){
+    if(e.login){return loginView()}
+    show("الطلبات",`<div class="card"><p class="err">تعذّر التحميل: ${esc(e.status===403?"لا صلاحية — تحقق من قواعد Firestore وبريد المدير":e.message)}</p><button class="btn" id="rt">إعادة المحاولة</button></div>`,{back:true});
+    $("rt").onclick=()=>{nav.pop();ordersView(filter)};return}
+  const cnt=k=>list.filter(o=>o.status===k).length;
+  const shown=filter==="all"?list:list.filter(o=>o.status===filter);
+  const chip=(k,l,n)=>`<button class="btn sm ${filter===k?"":"ghost"}" data-f="${k}" style="margin:0;width:auto;padding:8px 12px">${l} (${n})</button>`;
+  const dt=t=>{try{return new Date(t).toLocaleString("ar-DZ",{dateStyle:"short",timeStyle:"short"})}catch(_){return t}};
+  const cards=shown.map(o=>`<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b class="ltr">${esc(o.id)}</b><span class="tag ${o.status==="Annulé"||o.status==="Injoignable"?"off":""}">${esc(statLabel(o.status))}</span></div>
+    <p class="hint ltr" style="margin:2px 0 8px">${esc(dt(o._t))}</p>
+    <div style="line-height:1.7"><b class="ltr" style="display:block">${esc(o.produit)}${o.ref?" — "+esc(o.ref):""}</b>
+    الكمية: ${esc(o.quantite)}${o.total?" · المجموع: "+esc(fmtPrice(o.total))+" دج":""}${o.qualite?" · "+esc(o.qualite):""}<br>
+    👤 ${esc(o.nom)}<br>📍 ${esc(o.wilaya)} — ${esc(o.commune)}<br>🚗 <span class="ltr">${esc(o.vehicule)}</span>${o.motorisation?" · "+esc(o.motorisation):""}${o.source?`<br><small class="ltr" style="color:var(--mut)">${esc(o.source)}</small>`:""}</div>
+    <div class="row"><a class="btn sm sec" href="tel:+213${esc(String(o.telephone).slice(1))}">📞 ${esc(o.telephone)}</a><a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/213${esc(String(o.telephone).slice(1))}">💬 واتساب</a></div>
+    <select data-st="${esc(o._id)}" style="margin-top:8px">${STAT.map(x=>`<option value="${x[0]}" ${x[0]===o.status?"selected":""}>${x[1]}</option>`).join("")}</select>
+    <button class="btn sm danger" data-del="${esc(o._id)}">حذف الطلب</button></div>`).join("");
+  show("الطلبات",`<div class="imgs" style="gap:6px;margin-bottom:12px">${chip("all","الكل",list.length)}${STAT.map(x=>chip(x[0],x[1],cnt(x[0]))).join("")}</div>${cards||'<p class="hint" style="text-align:center">لا توجد طلبات.</p>'}
+  <button class="btn sm ghost" id="rf">تحديث</button>`,{back:true});
+  app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{nav.pop();ordersView(b.dataset.f)});
+  $("rf").onclick=()=>{nav.pop();ordersView(filter)};
+  app.querySelectorAll("[data-st]").forEach(sel=>sel.onchange=async()=>{
+    busy("جارٍ الحفظ…");try{await fs("PATCH","/orders/"+encodeURIComponent(sel.dataset.st)+"?updateMask.fieldPaths=status",{fields:{status:{stringValue:sel.value}}});busy();toast("تم تحديث الحالة");nav.pop();ordersView(filter)}
+    catch(e){busy();toast("فشل: "+e.message)}});
+  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("حذف هذا الطلب نهائياً؟"))return;busy("جارٍ الحذف…");
+    try{await fs("DELETE","/orders/"+encodeURIComponent(b.dataset.del));busy();nav.pop();ordersView(filter)}catch(e){busy();toast("فشل: "+e.message)}});
+}
+
 /* ----- نتيجة النشر ----- */
 function publishedView(id,sha,isNew){
   nav=[home];clearTimeout(pollT);
@@ -345,6 +432,7 @@ function settingsView(){
     <label for="c2">رقم الاتصال 2 (اختياري)</label><input id="c2" class="ltr" inputmode="tel" value="${esc(lc(c2))}" placeholder="0782941828">
     <h2 style="margin-top:18px">التتبع والسجل</h2>
     <label for="px">معرّف Meta Pixel (أرقام فقط، اختياري)</label><input id="px" class="ltr" inputmode="numeric" value="${esc(c.pixelId||"")}">
+    <label for="fk">مفتاح Firebase (Web API Key) لسجل الطلبات</label><input id="fk" class="ltr" value="${esc(c.firebaseKey||"")}" placeholder="AIza...">
     <label for="sh">رابط سجل الطلبات Google Sheets (اختياري)</label><input id="sh" class="ltr" value="${esc(c.sheetUrl||"")}" placeholder="https://script.google.com/macros/s/.../exec">
     <p class="err" id="er"></p>
     <button class="btn" id="sv">حفظ ونشر</button>
@@ -363,9 +451,11 @@ function settingsView(){
     }
     const px=$("px").value.trim(),sh=$("sh").value.trim();
     if(px&&!/^\d{10,20}$/.test(px))return er.textContent="Pixel: أرقام فقط (10 إلى 20 رقماً)";
+    const fk=$("fk").value.trim();
+    if(fk&&!/^AIza[\w-]{30,45}$/.test(fk))return er.textContent="المفتاح يبدأ بـ AIza";
     if(sh&&!/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(sh))return er.textContent="رابط Sheets يجب أن ينتهي بـ /exec";
     busy("جارٍ النشر…");
-    try{await publish(s=>({config:Object.assign({},s.config,{phone,calls,pixelId:px,sheetUrl:sh})}),"Admin: settings");busy();toast("تم الحفظ — جارٍ النشر");nav=[];home()}
+    try{await publish(s=>({config:Object.assign({},s.config,{phone,calls,pixelId:px,sheetUrl:sh,firebaseKey:fk})}),"Admin: settings");busy();toast("تم الحفظ — جارٍ النشر");nav=[];home()}
     catch(e){busy();er.textContent="فشل: "+e.message}
   };
   $("lo").onclick=()=>{if(confirm("حذف المفتاح من هذا الهاتف؟"))logout()};

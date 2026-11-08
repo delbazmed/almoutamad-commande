@@ -141,7 +141,19 @@ $("sheetClose").onclick=()=>sheet.hidden=true;
 sheet.addEventListener("click",e=>{if(e.target===sheet)sheet.hidden=true});
 
 /* ---------- Journal des commandes (Google Sheets) ---------- */
+const FS_PROJECT="almoutamad-commande";
+function logFirestore(o){
+  if(!CONFIG.firebaseKey)return;
+  const S=v=>({stringValue:String(v==null?"":v).slice(0,200)}),I=v=>({integerValue:String(Math.round(Number(v)||0))});
+  const doc={fields:{id:S(o.id),produitId:S(o.produitId),produit:S(o.produit),ref:S(o.ref),qualite:S(o.qualite),quantite:I(o.quantite),total:I(o.total),
+    nom:S(o.nom),telephone:S(o.telephone),wilaya:S(o.wilaya),commune:S(o.commune),vehicule:S(o.vehicule),motorisation:S(o.motorisation),source:S(o.source),status:S("Nouveau")}};
+  try{
+    fetch("https://firestore.googleapis.com/v1/projects/"+FS_PROJECT+"/databases/(default)/documents/orders?documentId="+encodeURIComponent(o.id)+"&key="+encodeURIComponent(CONFIG.firebaseKey),
+      {method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},body:JSON.stringify(doc)}).catch(()=>{});
+  }catch(_){}
+}
 function logOrder(payload){
+  logFirestore(payload);
   if(!CONFIG.sheetUrl)return;
   try{
     const body=JSON.stringify(payload);
@@ -285,7 +297,7 @@ function renderProduct(p,many){
       utm?"Source : "+utm:null
     ].filter(x=>x!==null);
 
-    logOrder({id:oid,produit:p.name,ref:p.ref||"",qualite:qlabel,quantite:n,total:total||"",
+    logOrder({id:oid,produitId:p.id,produit:p.name,ref:p.ref||"",qualite:qlabel,quantite:n,total:total||"",
       nom:$("nom").value.trim(),telephone:tel,wilaya:wilText,commune:com.value,
       vehicule:$("veh").value.trim(),motorisation:p.motorisation?$("mot").value:"",source:utm,website:""});
     if(window.fbq)fbq("track","Lead",total?{value:total,currency:"DZD",content_name:p.title}:{content_name:p.title});

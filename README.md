@@ -53,6 +53,12 @@ GitHub ← Settings ← Developer settings ← Personal access tokens ← Fine-g
 ### ما يُولَّد تلقائياً عند النشر
 `scripts/build_pages.py` ينشئ لكل منتج صفحة `/p/ID/` بمعاينة فيسبوك خاصة (عنوان + صورة 1200×630). هذه الملفات غير محفوظة في المستودع.
 
+## سجل الطلبات (Firestore) — شاشة «الطلبات» في Ali_Pub
+- الموقع يكتب كل طلب في مجموعة `orders` بمشروع `almoutamad-commande` (بالإضافة إلى رسالة واتساب).
+- القواعد المرجعية في `firestore.rules`: الزبون يستطيع إنشاء طلب بحقول صالحة فقط، ولا يقرأ شيئاً. المدير (بريد محدد) يقرأ ويغيّر الحالة ويحذف.
+- التفعيل: مفتاح Firebase (Web API Key) يوضع في إعدادات Ali_Pub، وتسجيل الدخول بالبريد وكلمة السر المنشأين في Authentication.
+- القواعد تُلصق يدوياً في Firebase Console (لا تُنشر تلقائياً).
+
 ## روابط الإعلانات
 - منتج واحد (الأفضل لمعاينة فيسبوك): `https://almoutamad-commande.web.app/p/ID/?utm_source=facebook&utm_campaign=NOM`
 - كل القطع: `https://almoutamad-commande.web.app/?utm_source=facebook`
