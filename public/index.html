@@ -112,7 +112,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:6px 0 14px}
 "use strict";
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const fmt=n=>Number(n).toLocaleString("fr-FR").replace(/[  ]/g," ")+" DA";
+const fmt=n=>String(Math.round(Number(n))).replace(/\B(?=(\d{3})+(?!\d))/g,".")+" DA";
 const pad=n=>String(n).padStart(2,"0");
 const QL={origine:"Pièce d'origine",adaptable:"Pièce adaptable"};
 const app=$("app");
